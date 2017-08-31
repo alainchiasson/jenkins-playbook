@@ -1,1 +1,4 @@
 - src: geerlingguy.jenkins
+- src: sfromm.epel
+- src: https://github.com/alainchiasson/remote-keygen
+  version: 1.0.1

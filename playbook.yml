@@ -1,15 +1,73 @@
 ---
-- hosts: all
+- hosts: slave
+  become: true
+  pre_tasks:
+  - name: install epel
+    package:
+      name: epel-release
+      state: latest
+  - name: install git
+    package:
+      name: git
+      state: latest
+  - name: install docker
+    package:
+      name: docker
+      state: latest
+  - name: Enable and start docker
+    service:
+      name: docker
+      state: started
+  - name: install pip
+    package:
+      name: python-pip
+      state: latest
+  - name: install development tools packages
+    package:
+      name: "@Development tools"
+      state: present
+  - name: install python development tools and headers
+    package:
+      name: python-devel
+      state: present
+  - name: install molecule from pip
+    pip:
+      name: molecule
+      state: latest
+
+  - name: Make sure we have a 'wheel' group
+    group:
+      name: wheel
+      state: present
+
+  - name: Allow 'wheel' group to have passwordless sudo
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      regexp: '^%wheel'
+      line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+
+  - name: Add sudoers users to wheel group
+    user: name=jenkins groups=wheel append=yes state=present createhome=yes
+
+
+  roles:
+  - role: remote-keygen
+    keymaster: 'node-1'
+  - role: geerlingguy.java
+    when: "ansible_os_family == 'RedHat'"
+    java_packages:
+      - java-1.8.0-openjdk
+
+- hosts: master
   become: true
   vars:
     jenkins_hostname: localhost
     jenkins_plugins:
       - blueocean
       - greenballs
+      - ssh-slaves
     jenkins_plugin_timeout: 120
   roles:
-  - role: geerlingguy.java
-    when: "ansible_os_family == 'RedHat'"
-    java_packages:
-      - java-1.8.0-openjdk
-  - role: geerlingguy.jenkins
+  - { role: remote-keygen, keymaster: 'node-1' }
+  # - { role: geerlingguy.jenkins }
